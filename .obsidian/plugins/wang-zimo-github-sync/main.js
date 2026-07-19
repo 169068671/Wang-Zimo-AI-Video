@@ -44,7 +44,7 @@ class AIVideoGitHubSyncPlugin extends Plugin {
       const args = [scriptPath, "--vault", vaultPath, "--remote-url", this.settings.remoteUrl, "--branch", this.settings.branch, "--json"];
       if (statusOnly) args.push("--status");
       if (!statusOnly && this.settings.runValidation) args.push("--validate");
-      const { stdout } = await execFileAsync("python3", args, { cwd: vaultPath, timeout: 1800000, maxBuffer: 8 * 1024 * 1024, env: Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: "0" }) });
+      const { stdout } = await execFileAsync("python3", args, { cwd: vaultPath, timeout: 1800000, maxBuffer: 8 * 1024 * 1024, env: Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: "0", PATH: ["/opt/homebrew/bin", "/usr/local/bin", process.env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin"].join(":") }) });
       const payload = this.parsePayload(stdout);
       if (!payload.ok) throw new Error(payload.message);
       notice.setMessage(payload.message);
