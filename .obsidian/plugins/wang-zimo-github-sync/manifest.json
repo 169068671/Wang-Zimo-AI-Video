@@ -1,0 +1,10 @@
+{
+  "id": "wang-zimo-github-sync",
+  "name": "王子墨 AI 视频 GitHub Sync",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "一键核验、提交并安全推送整个王子墨 AI 视频 Obsidian 仓库到 GitHub。",
+  "author": "169068671",
+  "authorUrl": "https://github.com/169068671",
+  "isDesktopOnly": true
+}
