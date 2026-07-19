@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "vault": "王子墨AI视频",
+  "generated_at": "2026-07-20T00:00:00+08:00",
+  "policy": {
+    "max_edge": 1600,
+    "format": "JPEG",
+    "max_bytes": 2097152
+  },
+  "anchors": [
+    {
+      "source": "attachments/人物锚点/00_主锚点/王子墨_唯一主锚点_4K.jpg",
+      "upload_anchor": "attachments/上传锚点/人物锚点/00_主锚点/王子墨_唯一主锚点_4K_上传锚点.jpg",
+      "source_sha256": "8fd5973f695aadb5d621f79e9495233b562b3db4490d4f50728024df29418053",
+      "upload_sha256": "a1aea5c79c71632c70e60e960bd485fdb50c679eac683915e27b1347d5b52042",
+      "source_bytes": 6913255,
+      "upload_bytes": 102143,
+      "source_dimensions": [
+        5504,
+        3072
+      ],
+      "upload_dimensions": [
+        1600,
+        893
+      ]
+    },
+    {
+      "source": "attachments/人物锚点/01_单人锚点/A02B_小墨_单人高保真身份锚点_4K.jpg",
+      "upload_anchor": "attachments/上传锚点/人物锚点/01_单人锚点/A02B_小墨_单人高保真身份锚点_4K_上传锚点.jpg",
+      "source_sha256": "8fd5973f695aadb5d621f79e9495233b562b3db4490d4f50728024df29418053",
+      "upload_sha256": "a1aea5c79c71632c70e60e960bd485fdb50c679eac683915e27b1347d5b52042",
+      "source_bytes": 6913255,
+      "upload_bytes": 102143,
+      "source_dimensions": [
+        5504,
+        3072
+      ],
+      "upload_dimensions": [
+        1600,
+        893
+      ]
+    },
+    {
+      "source": "attachments/人物锚点/01_单人锚点/D02_小墨_三造型数字人母版_4K.png",
+      "upload_anchor": "attachments/上传锚点/人物锚点/01_单人锚点/D02_小墨_三造型数字人母版_4K_上传锚点.jpg",
+      "source_sha256": "da7e2e965d8b145837c46ce3c4a9fa4569e13deacf5915a0688614ddd75ae1f4",
+      "upload_sha256": "10892390fad86a72565654185bf2839ece550538dbeecb6ab5b7a9f50002d02e",
+      "source_bytes": 18379593,
+      "upload_bytes": 154324,
+      "source_dimensions": [
+        5504,
+        3072
+      ],
+      "upload_dimensions": [
+        1600,
+        893
+      ]
+    },
+    {
+      "source": "attachments/人物锚点/02_双人锚点/D03_大睿小墨_品牌顾问双人母版_4K.jpg",
+      "upload_anchor": "attachments/上传锚点/人物锚点/02_双人锚点/D03_大睿小墨_品牌顾问双人母版_4K_上传锚点.jpg",
+      "source_sha256": "3bfe3e2eae7f70c2601a4ef1d128a9be01c56f13d7516fdeabdb9a6a93b59955",
+      "upload_sha256": "203d87da1ff75e127e5bd86153d03d3d94ff0b7ee5218502bd4af35a1d40ad4a",
+      "source_bytes": 7705894,
+      "upload_bytes": 202527,
+      "source_dimensions": [
+        5504,
+        3072
+      ],
+      "upload_dimensions": [
+        1600,
+        893
+      ]
+    },
+    {
+      "source": "attachments/人物锚点/02_双人锚点/D04_大睿小墨_青春潮流双人母版_4K.jpg",
+      "upload_anchor": "attachments/上传锚点/人物锚点/02_双人锚点/D04_大睿小墨_青春潮流双人母版_4K_上传锚点.jpg",
+      "source_sha256": "6746ba56e00a1332a0cda0a48c78d82fe680abf28db678d9d1601137ab7d9f44",
+      "upload_sha256": "f890d3f5670edc85010ecea11fdafb34e5b6572643cdd7693c46f0ef806a8ae5",
+      "source_bytes": 8429876,
+      "upload_bytes": 248040,
+      "source_dimensions": [
+        5504,
+        3072
+      ],
+      "upload_dimensions": [
+        1600,
+        893
+      ]
+    },
+    {
+      "source": "attachments/人物锚点/02_双人锚点/D05_大睿小墨_未来验光双人母版_4K.jpg",
+      "upload_anchor": "attachments/上传锚点/人物锚点/02_双人锚点/D05_大睿小墨_未来验光双人母版_4K_上传锚点.jpg",
+      "source_sha256": "855a5b070a35cb854fda434fc7842a10fd9d0abc3fe59da56cdfd58f02f06918",
+      "upload_sha256": "1ca0d4fe8e291889588bff16b7744386b02d47dd71e5ed2be391d6aa1f63b6cb",
+      "source_bytes": 7123656,
+      "upload_bytes": 139812,
+      "source_dimensions": [
+        5504,
+        3072
+      ],
+      "upload_dimensions": [
+        1600,
+        893
+      ]
+    }
+  ]
+}

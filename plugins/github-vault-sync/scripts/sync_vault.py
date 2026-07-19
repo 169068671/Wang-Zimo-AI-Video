@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -15,6 +16,16 @@ DEFAULT_REMOTE = "https://github.com/169068671/Wang-Zimo-AI-Video.git"
 DEFAULT_BRANCH = "main"
 DEFAULT_VAULT = Path(__file__).resolve().parents[3]
 TIMEOUT = 180
+UPLOAD_ANCHOR_POLICY_VERSION = 1
+UPLOAD_ANCHOR_DIR = Path("attachments/上传锚点")
+LOCAL_ANCHOR_DIRS = (
+    Path("attachments/人物锚点"),
+    Path("attachments/场景锚点"),
+    Path("attachments/品牌锚点"),
+    Path("attachments/4K锚点组"),
+)
+UPLOAD_ANCHOR_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_UPLOAD_ANCHOR_BYTES = 2 * 1024 * 1024
 
 
 class SyncError(RuntimeError):
@@ -49,6 +60,74 @@ def run(
 def git(vault: Path, args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
     return run(["git", *args], cwd=vault, check=check, git_command=True)
 
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def resolve_local_anchor(vault: Path, path: Path) -> Path:
+    head = path.read_bytes()[:256]
+    if not head.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        return path
+    match = re.search(rb"oid sha256:([0-9a-f]{64})", head)
+    if not match:
+        raise SyncError(f"无法解析本地 Git LFS 锚点：{path.relative_to(vault)}")
+    oid = match.group(1).decode("ascii")
+    obj = vault / ".git" / "lfs" / "objects" / oid[:2] / oid[2:4] / oid
+    if not obj.is_file():
+        raise SyncError(f"本机缺少 Git LFS 锚点原图：{path.relative_to(vault)}")
+    return obj
+
+
+def prepare_upload_anchor_policy(vault: Path) -> dict[str, int]:
+    originals = []
+    for rel_dir in LOCAL_ANCHOR_DIRS:
+        root = vault / rel_dir
+        if root.is_dir():
+            originals.extend(
+                path for path in root.rglob("*")
+                if path.is_file() and path.suffix.lower() in UPLOAD_ANCHOR_SUFFIXES
+            )
+    upload_root = vault / UPLOAD_ANCHOR_DIR
+    uploads = [
+        path for path in upload_root.rglob("*")
+        if path.is_file() and path.suffix.lower() in UPLOAD_ANCHOR_SUFFIXES
+    ] if upload_root.is_dir() else []
+    if originals and not uploads:
+        raise SyncError("检测到本地原始锚点，但缺少 attachments/上传锚点，已停止上传。")
+    oversized = [path.relative_to(vault).as_posix() for path in uploads if path.stat().st_size > MAX_UPLOAD_ANCHOR_BYTES]
+    if oversized:
+        joined = "\n".join(f"- {path}" for path in oversized)
+        raise SyncError(f"上传锚点超过 2 MB，已停止上传：\n{joined}")
+    manifest = upload_root / "上传锚点清单.json"
+    if originals and not manifest.is_file():
+        raise SyncError("缺少上传锚点哈希清单，已停止上传。")
+    try:
+        records = json.loads(manifest.read_text(encoding="utf-8")).get("anchors", []) if manifest.is_file() else []
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SyncError(f"上传锚点清单不可读，已停止上传：{exc}") from exc
+    listed_uploads = set()
+    for record in records:
+        source = vault / str(record.get("source", ""))
+        upload = vault / str(record.get("upload_anchor", ""))
+        if not source.is_file() or not upload.is_file():
+            raise SyncError(f"上传锚点清单存在缺失文件：{record}")
+        listed_uploads.add(upload.resolve())
+        if sha256_file(resolve_local_anchor(vault, source)) != record.get("source_sha256"):
+            raise SyncError(f"原始锚点已变化，请重新生成上传锚点：{source.relative_to(vault)}")
+        if sha256_file(upload) != record.get("upload_sha256"):
+            raise SyncError(f"上传锚点哈希不一致，已停止上传：{upload.relative_to(vault)}")
+    actual_uploads = {path.resolve() for path in uploads}
+    if listed_uploads != actual_uploads:
+        raise SyncError("上传锚点目录与哈希清单不一致，已停止上传。")
+    for rel_dir in LOCAL_ANCHOR_DIRS:
+        git(vault, ["rm", "-r", "--cached", "--ignore-unmatch", "--", rel_dir.as_posix()], check=False)
+    return {"originals": len(originals), "uploads": len(uploads)}
 
 def normalize_remote(value: str) -> str:
     remote = value.strip().rstrip("/")
@@ -232,6 +311,8 @@ def sync(
         joined = "\n".join(f"- {path}" for path in blocked)
         raise SyncError(f"发现可能包含密钥或凭据的文件，已停止上传：\n{joined}")
 
+    anchor_policy = prepare_upload_anchor_policy(vault)
+
     git(vault, ["add", "-A"])
     changes = git(vault, ["status", "--porcelain"]).stdout.strip()
     committed = False
@@ -261,6 +342,7 @@ def sync(
         "commit": commit,
         "remote": remote_url,
         "validation": validation,
+        "anchor_policy": anchor_policy,
         "message": f"已同步到 GitHub：{branch} @ {commit}",
     }
 
