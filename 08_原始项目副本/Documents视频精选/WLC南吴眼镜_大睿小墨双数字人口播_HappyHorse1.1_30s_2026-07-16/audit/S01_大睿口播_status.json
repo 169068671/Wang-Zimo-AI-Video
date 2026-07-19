@@ -1,0 +1,14 @@
+{
+  "id": "wYDEZTCeR6wsHH6eoRDB",
+  "generation_id": "gen-vid-1784183906-oLYBO0WvSXgcZdVDdi6w",
+  "polling_url": "https://openrouter.ai/api/v1/videos/wYDEZTCeR6wsHH6eoRDB",
+  "status": "completed",
+  "unsigned_urls": [
+    "https://openrouter.ai/api/v1/videos/wYDEZTCeR6wsHH6eoRDB/content?REDACTED"
+  ],
+  "usage": {
+    "cost": 1.482,
+    "is_byok": false
+  },
+  "polled_at": "2026-07-16T07:41:55.345258+00:00"
+}

@@ -1,0 +1,101 @@
+{
+  "checked_at": "2026-07-16T07:41:05.375985+00:00",
+  "model": {
+    "id": "alibaba/happyhorse-1.1",
+    "canonical_slug": "alibaba/happyhorse-1.1-20260624",
+    "hugging_face_id": null,
+    "name": "Alibaba: HappyHorse 1.1",
+    "created": 1782269643,
+    "description": "HappyHorse 1.1 is a video generation model from Alibaba. It generates short videos from a text prompt, a single starting image, or a set of reference images, with output up...",
+    "supported_resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "supported_aspect_ratios": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4",
+      "21:9",
+      "9:21"
+    ],
+    "supported_sizes": [
+      "1280x720",
+      "720x1280",
+      "720x720",
+      "960x720",
+      "720x960",
+      "1680x720",
+      "720x1680",
+      "1920x1080",
+      "1080x1920",
+      "1080x1080",
+      "1440x1080",
+      "1080x1440",
+      "2520x1080",
+      "1080x2520"
+    ],
+    "supported_durations": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "supported_frame_images": [
+      "first_frame"
+    ],
+    "generate_audio": null,
+    "seed": true,
+    "pricing_skus": {
+      "duration_seconds_720p": "0.0988",
+      "duration_seconds_1080p": "0.1278"
+    },
+    "allowed_passthrough_parameters": []
+  },
+  "account": {
+    "label": "sk-or-v1-433...e7c",
+    "is_management_key": false,
+    "is_provisioning_key": false,
+    "limit": 99,
+    "limit_reset": null,
+    "limit_remaining": 36.452926479,
+    "include_byok_in_limit": false,
+    "usage": 62.547073521,
+    "usage_daily": 4.447575182,
+    "usage_weekly": 11.607142717,
+    "usage_monthly": 11.607142717,
+    "byok_usage": 0,
+    "byok_usage_daily": 0,
+    "byok_usage_weekly": 0,
+    "byok_usage_monthly": 0,
+    "is_free_tier": false,
+    "expires_at": null,
+    "creator_user_id": "user_3CeMLW98WTl8xJB9iNGLiyEZ15f",
+    "rate_limit": {
+      "requests": -1,
+      "interval": "10s",
+      "note": "This field is deprecated and safe to ignore."
+    }
+  },
+  "requested": {
+    "clips": 2,
+    "seconds_each": 15,
+    "total_seconds": 30,
+    "resolution": "720p",
+    "aspect_ratio": "9:16"
+  },
+  "price_per_second_usd": 0.0988,
+  "estimated_total_usd": 2.964,
+  "frame": "/Users/wangzirui/Documents/视频/WLC南吴眼镜_大睿小墨双数字人口播_HappyHorse1.1_30s_2026-07-16/keyframes/KF_B01双人品牌顾问_竖屏720x1280.jpg",
+  "frame_bytes": 98678
+}
