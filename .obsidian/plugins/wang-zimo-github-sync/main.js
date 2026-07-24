@@ -47,7 +47,11 @@ class AIVideoGitHubSyncPlugin extends Plugin {
       const { stdout } = await execFileAsync("python3", args, { cwd: vaultPath, timeout: 1800000, maxBuffer: 8 * 1024 * 1024, env: Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: "0", PATH: ["/opt/homebrew/bin", "/usr/local/bin", process.env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin"].join(":") }) });
       const payload = this.parsePayload(stdout);
       if (!payload.ok) throw new Error(payload.message);
-      notice.setMessage(payload.message);
+      let msg = payload.message;
+      if (payload.lfs && payload.lfs.enabled && msg && !String(msg).includes("LFS")) {
+        msg = String(msg) + "（含 Git LFS 大文件）";
+      }
+      notice.setMessage(msg);
       this.statusBar.setText(statusOnly ? `GitHub: ${payload.changes || 0} 项待同步` : `GitHub: 已同步 ${payload.commit}`);
       window.setTimeout(() => notice.hide(), 5000);
     } catch (error) {

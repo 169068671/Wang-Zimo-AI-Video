@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -15,7 +16,7 @@ from pathlib import Path
 DEFAULT_REMOTE = "https://github.com/169068671/Wang-Zimo-AI-Video.git"
 DEFAULT_BRANCH = "main"
 DEFAULT_VAULT = Path(__file__).resolve().parents[3]
-TIMEOUT = 180
+TIMEOUT = 1800
 UPLOAD_ANCHOR_POLICY_VERSION = 1
 UPLOAD_ANCHOR_DIR = Path("attachments/上传锚点")
 LOCAL_ANCHOR_DIRS = (
@@ -61,7 +62,6 @@ def git(vault: Path, args: list[str], *, check: bool = True) -> subprocess.Compl
     return run(["git", *args], cwd=vault, check=check, git_command=True)
 
 
-
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -82,6 +82,71 @@ def resolve_local_anchor(vault: Path, path: Path) -> Path:
     if not obj.is_file():
         raise SyncError(f"本机缺少 Git LFS 锚点原图：{path.relative_to(vault)}")
     return obj
+
+
+def lfs_enabled(vault: Path) -> bool:
+    attributes = vault / ".gitattributes"
+    if not attributes.is_file():
+        return False
+    try:
+        return "filter=lfs" in attributes.read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
+def ensure_lfs(vault: Path) -> dict[str, object]:
+    """Ensure Git LFS is available when .gitattributes tracks media via LFS."""
+    enabled = lfs_enabled(vault)
+    info: dict[str, object] = {
+        "enabled": enabled,
+        "installed": False,
+        "tracked_count": 0,
+    }
+    if not enabled:
+        return info
+    if shutil.which("git-lfs") is None:
+        raise SyncError(
+            "仓库启用了 Git LFS（音频/视频/图片大文件），但本机未安装 git-lfs。\n"
+            "请先执行：brew install git-lfs && git lfs install"
+        )
+    info["installed"] = True
+    git(vault, ["lfs", "install", "--local"], check=False)
+    tracked = git(vault, ["lfs", "ls-files"], check=False)
+    if tracked.returncode == 0 and tracked.stdout.strip():
+        info["tracked_count"] = len([line for line in tracked.stdout.splitlines() if line.strip()])
+    return info
+
+
+def lfs_summary(vault: Path) -> dict[str, object]:
+    summary: dict[str, object] = {
+        "enabled": lfs_enabled(vault),
+        "installed": shutil.which("git-lfs") is not None,
+        "tracked_count": 0,
+        "pending_pointer_files": 0,
+    }
+    if not summary["enabled"] or not summary["installed"]:
+        return summary
+    tracked = git(vault, ["lfs", "ls-files"], check=False)
+    if tracked.returncode == 0 and tracked.stdout.strip():
+        lines = [line for line in tracked.stdout.splitlines() if line.strip()]
+        summary["tracked_count"] = len(lines)
+    # porcelain status may include large media waiting to sync
+    porcelain = git(vault, ["status", "--porcelain"], check=False).stdout
+    media_ext = {
+        ".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm",
+        ".wav", ".mp3", ".m4a", ".aac", ".flac",
+        ".png", ".jpg", ".jpeg", ".webp", ".gif",
+    }
+    pending = 0
+    for line in porcelain.splitlines():
+        path = line[3:].strip() if len(line) > 3 else ""
+        if path and Path(path).suffix.lower() in media_ext:
+            # upload anchors stay on normal git
+            if path.startswith("attachments/上传锚点/") or path.startswith("attachments\\上传锚点\\"):
+                continue
+            pending += 1
+    summary["pending_pointer_files"] = pending
+    return summary
 
 
 def prepare_upload_anchor_policy(vault: Path) -> dict[str, int]:
@@ -125,9 +190,9 @@ def prepare_upload_anchor_policy(vault: Path) -> dict[str, int]:
     actual_uploads = {path.resolve() for path in uploads}
     if listed_uploads != actual_uploads:
         raise SyncError("上传锚点目录与哈希清单不一致，已停止上传。")
-    for rel_dir in LOCAL_ANCHOR_DIRS:
-        git(vault, ["rm", "-r", "--cached", "--ignore-unmatch", "--", rel_dir.as_posix()], check=False)
-    return {"originals": len(originals), "uploads": len(uploads)}
+    # 原图母版（人物/场景/品牌/4K）一并纳入 Git LFS 推送，不再从索引排除。
+    return {"originals": len(originals), "uploads": len(uploads), "masters_included": True}
+
 
 def normalize_remote(value: str) -> str:
     remote = value.strip().rstrip("/")
@@ -252,6 +317,20 @@ def rebase_remote(vault: Path, remote_name: str, branch: str) -> None:
 
 def friendly_error(message: str) -> str:
     lower = message.lower()
+    if isinstance(message, str) and "timed out" in lower:
+        return (
+            "同步超时。音频/视频等大文件经 Git LFS 上传可能较慢，"
+            "请保持网络畅通后重试；单次同步最长约 30 分钟。"
+        )
+    if "git-lfs" in lower and ("not found" in lower or "未安装" in message or "brew install" in lower):
+        return message if "brew install" in message else (
+            "本机缺少 git-lfs。请执行：brew install git-lfs && git lfs install"
+        )
+    if "lfs" in lower and ("quota" in lower or "batch" in lower or "403" in lower):
+        return (
+            "Git LFS 上传失败（可能是配额或权限）。"
+            "请检查 GitHub 仓库 LFS 配额与 gh/git 认证后重试。"
+        )
     auth_markers = ("authentication failed", "could not read username", "permission denied", "403")
     if any(marker in lower for marker in auth_markers):
         return (
@@ -271,12 +350,14 @@ def status(vault: Path, remote_name: str) -> dict[str, object]:
             "ok": True,
             "initialized": False,
             "vault": str(vault),
+            "lfs": lfs_summary(vault),
             "message": "尚未初始化 Git，首次同步时会自动初始化。",
         }
     branch = git(vault, ["symbolic-ref", "--quiet", "--short", "HEAD"], check=False).stdout.strip()
     remote = git(vault, ["remote", "get-url", remote_name], check=False).stdout.strip()
     changes = [line for line in git(vault, ["status", "--porcelain"]).stdout.splitlines() if line]
     commit = git(vault, ["rev-parse", "--short", "HEAD"], check=False).stdout.strip()
+    lfs = lfs_summary(vault)
     return {
         "ok": True,
         "initialized": True,
@@ -285,7 +366,12 @@ def status(vault: Path, remote_name: str) -> dict[str, object]:
         "remote": remote,
         "changes": len(changes),
         "commit": commit or None,
-        "message": f"当前有 {len(changes)} 项未同步变更。",
+        "lfs": lfs,
+        "message": (
+            f"当前有 {len(changes)} 项未同步变更"
+            + (f"；LFS 已跟踪 {lfs.get('tracked_count', 0)} 个大文件" if lfs.get("enabled") else "")
+            + "。"
+        ),
     }
 
 
@@ -305,6 +391,7 @@ def sync(
     ensure_branch(vault, branch)
     remote_added = ensure_remote(vault, remote_name, remote_url)
     identity_added = ensure_identity(vault)
+    lfs_info = ensure_lfs(vault)
 
     blocked = scan_sensitive_paths(vault)
     if blocked:
@@ -328,8 +415,14 @@ def sync(
     if remote_exists:
         rebase_remote(vault, remote_name, branch)
 
+    # Normal git push also transfers LFS objects when git-lfs is installed/hooked.
     git(vault, ["push", "--set-upstream", remote_name, branch])
     commit = git(vault, ["rev-parse", "--short", "HEAD"]).stdout.strip()
+    lfs_after = lfs_summary(vault)
+    lfs_after["installed"] = bool(lfs_info.get("installed")) or bool(lfs_after.get("installed"))
+    lfs_note = ""
+    if lfs_after.get("enabled"):
+        lfs_note = f"；已通过 Git LFS 处理音频/视频/图片（跟踪 {lfs_after.get('tracked_count', 0)} 个）"
     return {
         "ok": True,
         "pushed": True,
@@ -343,7 +436,8 @@ def sync(
         "remote": remote_url,
         "validation": validation,
         "anchor_policy": anchor_policy,
-        "message": f"已同步到 GitHub：{branch} @ {commit}",
+        "lfs": lfs_after,
+        "message": f"已同步到 GitHub：{branch} @ {commit}{lfs_note}",
     }
 
 
@@ -377,7 +471,12 @@ def main() -> int:
             )
         print(json.dumps(result, ensure_ascii=False) if args.json else result["message"])
         return 0
-    except (SyncError, subprocess.TimeoutExpired) as exc:
+    except subprocess.TimeoutExpired:
+        message = friendly_error("Command timed out")
+        payload = {"ok": False, "pushed": False, "message": message}
+        print(json.dumps(payload, ensure_ascii=False) if args.json else message)
+        return 1
+    except SyncError as exc:
         message = friendly_error(str(exc))
         payload = {"ok": False, "pushed": False, "message": message}
         print(json.dumps(payload, ensure_ascii=False) if args.json else message)

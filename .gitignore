@@ -5,10 +5,4 @@
 **/__pycache__/
 *.pyc
 
-# 本地高分辨率锚点：保留本机，不上传 GitHub
-/attachments/人物锚点/
-/attachments/场景锚点/
-/attachments/品牌锚点/
-/attachments/4K锚点组/
-!/attachments/上传锚点/
-!/attachments/上传锚点/**
+# 原图母版（人物/场景/品牌/4K）与上传小图均可同步；大图走 Git LFS
